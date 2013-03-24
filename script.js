@@ -163,7 +163,7 @@ $(document).on('click',".card_frame",function(){
 			reset();
 		}
 		setTimeout(function(){
-			$(".card_frame img").attr("src","Badges/code.png");			
+			$(".card_frame img").attr("src","Badges/0.png");			
 			cardsHidden.forEach(function(value,index){
 				cardsHidden[index].hidden = true;
 			});
