@@ -1,13 +1,30 @@
 <!DOCTYPE html>
+<!-- Draft HTML file for Codecademy, Advanced JavaScript Coders, Game Month, Memory Game -->
 <html lang="en">
 	<head>
 		<meta charset="utf-8">
-		<title>Memory Game</title>
-		<link rel="stylesheet" type="text/css" href="stylesheet.css">
-		<script type="text/javascript" src="jQuery.js"></script>
+		<title>Codecademy Memory Game</title>
+		<link type="text/css" rel="stylesheet" href="stylesheet.css">
+		<link href="http://fonts.googleapis.com/css?family=Lobster&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+		<script src="jquery-1.9.1.min.js"></script>
+		<!--<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>-->
 		<script type="text/javascript" src="script.js"></script>
+		<link rel="icon" href="favicon.ico"/>
 	</head>
 	<body>
-		<div id="board"></div>
+		<div id="game_title_wrapper">
+			<h1 id="game_title">Codecademy Memory</h1>
+		</div>
+		<div id="game_frame">
+			<div id="game_board_frame">
+				<div class="game_board_spacer"></div>
+			</div>
+			<div id="game_info_frame">
+			</div>
+			<div id="control_frame">
+				<button id="start" value="Start">Start</button>
+				<button id="quit" value="Quit">Quit</button>		
+			</div>
+		</div>
 	</body>
 </html>
