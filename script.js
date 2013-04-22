@@ -1,9 +1,10 @@
 //------------------------------------ Global variables-------------------------------
 // Is there a way to avoid such things?
-	var minID,secID;
+    var minID,secID;
     var cardsHidden = [];
     var pairsFound = 0;
-    var currentPlayer = 1;
+    var players = [];
+    var cp = 1;//currentPlayer
 	var gameIsRunning = false, lock = false; //to only allow 3 card clicks per players turn
     var all = ["23andmeAPI.png", "AddressBook.png", "BitlyAPI.png", "Blackjack.png", "Blackjack2.png", "Blackjack3.png", "BoxAPI.png", "CashRegister.png",
     	      "DiceGame.png", "DiceGame2.png", "DwollaAPI.png", "EasyPostAPI.png", "EvernoteAPI.png", "Fifty.png", "FireBaseAPI.png", "First.png", "FiveHundred.png",
@@ -23,7 +24,8 @@
     var set = [all,jsCards,pointCards,pythonCards,rubyCards];
     var setUpCard = ["Code.png","Code.png","JQuery.png","Python.png","Ruby.png"]
     var upCard, cards =[];// set[chooseSet];
-///*--------------------------------------Clock (not used yet)--------------------------- 
+	
+//-------------------------------------- Clock --------------------------- 
 // Starts the minutes of the clock
 var startMin = function() {
     minID = setInterval(function(){
@@ -55,14 +57,24 @@ var startClock = function(bool) {
         stopClock();
     /*startMS(),*/ startSec(), startMin();
 };
-//*/
 
 //********************************************** Building the game frame **************************************************************
 // To add players using jQuery
-var addPlayers = function(nop) {
-    for (var i = 1; i < nop+1; i++) {
-        $('#game_info_frame').append($('<div id="player' + i + '_frame" class="player_frame">Player ' + i + '</div>'));
-        $('#player' + i + '_frame').append('<br>Turns taken:<span id="player' +i+ '_score" </span>'); 
+var addPlayers = function(nop) { //back-up
+	var botCounter = 1;
+	players = [];
+   	for (var i = 1; i < nop+1; i++) {
+		var name = prompt("Please insert your name or 'bot' to add a non-human opponent");
+		if(name.toLowerCase()=="bot"){
+			name = "Bot "+botCounter;
+			players[i-1] = new AI(i,name);
+			botCounter++;	
+		}
+		else{
+			players[i-1] = new Player(i,name);
+		}
+        $('#game_info_frame').append($('<div id="player' + i + '_frame" class="player_frame">' + players[i-1].name + '</div>'));
+        $('#player' + i + '_frame').append('<br>Turns taken:<span id="player' +i+ '_turns" </span>'); 
         $('#player' + i + '_frame').append('<br>Pairs Matched:<span id="player' +i+ '_matched" </span>');        
     }    
 };
@@ -80,16 +92,24 @@ var addImages = function(noc) {
 
 var start = function(){//get new Cards by pressing start button 
 		if (gameIsRunning) { return ;}
+		gameIsRunning = true;
+		var chooseSet = parseInt($("#set").val(), 10);
 		startClock(true);
-		var player = parseInt($("#nop").val());
+		if(chooseSet === 5) {  // Credits condition; perhaps we'll have to improve the way of showing credits
+			var creditsText = "<h1> Credits </h1> <p> These are the people, who have contributed to this project: </p> <ul> <li> <strong> boring12345: </strong> leader and developer </li> <li> <strong> haxor789: </strong> lead developer </li> <li> <strong> hkapur97: </strong> lead developer </li> <li> <strong> DaVinniCode: </strong> developer </li> <li> <strong> Tachos: </strong> UI engineer </li> <li> <strong> mariomarine: </strong> Images </li> <li> <strong> AAM-Smith, Alex C, DeK: </strong> Testing & Helping </li>  </ul>";
+			$("#game_board_frame").html(creditsText);
+			return ;
+		}
+		var player = parseInt($("#nop").val(), 10);
 		addPlayers(player);	
-		var chooseSet = $("#set").val();//parseInt(prompt("0:all,1:JS,2:PC,3:Py,4:Ru"),10);	
     	upCard = setUpCard[chooseSet]; 
     	cards  = set[chooseSet].slice();
 		var noc = cards.length>=12 ? 12:cards.length;
 		addImages(noc);
         cardsHidden = HideCards(noc);
-		gameIsRunning = true;
+		if(players[cp-1].ai){
+			players[cp-1].turn();
+		}
 };
 //+++++++++++++++++++++++++++++++++++++++++++ Preparing the cards ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //------------------------------------------- Image Constructor ---------------------------------------------------------------------- 
@@ -101,6 +121,9 @@ function Image(number,src){
     this.getPlace =  function(){ //the image inside the card_frame of id 
         return this.id+ " img";
     }
+	this.getNumber = function(){
+			return number;
+	}
     this.hidden = true;
     this.fadedOut = false;	
 }
@@ -164,14 +187,14 @@ function reset(noc){// Game over!?
 		var winner = "";
 		var playerScore = 0;
 	    var highscore = 0;
-		for(var i=1;i<parseInt($("#nop").val())+1;i++){ 
-			playerScore = parseInt($('#player'+i+'_matched').html());
+		for(var i=1;i<players.length+1;i++){ 
+			playerScore = parseInt($('#player'+i+'_matched').html(), 10);
 			if(highscore == playerScore){
-					winner+= " and Player"+i;
+					winner+= " and "+players[i-1].name;
 			}
 			if(highscore < playerScore){
 					highscore = playerScore;
-					winner = "Player"+i;
+					winner = players[i-1].name;
 			}			
 		}
 		setBack();
@@ -183,40 +206,131 @@ function reset(noc){// Game over!?
 
 
 var nextPlayer = function(){
-    currentPlayer++;
-    if (currentPlayer > parseInt($("#nop").val())) { currentPlayer = 1;}
+    cp++;
+    if (cp > players.length) { cp = 1;}
 };
 
-//-------------------------------------------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------- Players ------------------------------------------------------------------------------------
+
+function Player(number,name){
+	this.score = 0;
+	this.number = number;
+	this.name = name;
+	this.turns =0;
+	this.pairs = 0;
+	this.ai = false;
+}
+//-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+//---------------------------------------------------- Artifical Intelligence (or at least a non-human opponent :D) (not used yet) -------------------------------------
+function AI(number,name){
+	this.name = name;
+	this.number = number;
+	this.ai = true;
+	var queue = [];
+	this.printQueue = function(){//just for debugging purpose
+   	 var q = [];
+    	for(var i=0;i<queue.length;i++){
+        	q[i] = queue[i].getSrc().split("Badges/").splice(1);
+    	}
+    	return q;
+	}
+	
+	this.forget = function(){ //the queue array is limited to the last e.g. 7 cards
+    	if(queue.length>10)
+    	queue.shift();//shift deletes the 1 item of an array (and returns it)
+    	//e.g. [1,2,3].shift() --> [2,3]
+	};
+	this.learn = function(input){
+    	queue.push(input); //whenever a card is revealed store its position in queue
+	};
+
+	this.shuffle = function(){
+		queue.sort(random);
+	}
+
+	this.check = function(){
+    	for(var i=0;i<queue.length;i++){
+        	for(var j = i+1;j<queue.length;j++){
+            	if(queue[i].getSrc()== queue[j].getSrc()){
+                	return this.found(i,j);
+            	}
+        	}
+    	}
+    	return false;
+	};
+
+	this.found = function(i,j){//deletes a pair when found
+		var pair = [];
+		var num1 = queue.splice(j,1)[0]/*.getNumber()*/;
+		var num2 = queue.splice(i,1)[0]/*<.getNumber()*/;
+    	pair.push(num1);//j before i to keep the order in the array
+    	pair.push(num2);//splice returns the object in an array!!
+    	return pair;    	
+	};
+
+	this.alreadyIn = function(card){
+		for(var i in queue){
+			if(queue[i].getNumber() == card.getNumber()){
+				return true;
+			}
+		}
+		return false;
+	}
+
+	this.turn = function(){
+		var pair = this.check();
+		if(pair && pair[0].fadedOut == false){
+			turn(pair[0].getNumber());
+			turn(pair[1].getNumber());	
+		}
+		else{
+			var rand;
+			var last = -1;
+			for(var i=0;i<2;i++){
+				do{
+					rand = Math.floor(Math.random()*cardsHidden.length+1);
+				} while(cardsHidden[rand-1].fadedOut || rand== last);
+				turn(rand);
+				last = rand;
+			}
+		}
+	};
+}
+
+AI.prototype = new Player();
+
+//-------------------------------------------------------------------------------------------------------------------------------------------------------
 
 $(document).ready(function(){	
-	//var player = parseInt(prompt("How many players do we have today?"));
-	//player = player>4?4:player;
    	$("#start").click(start);
 	$("#quit").click(function(){
 			setBack();
 	});
 	alert("Get your settings ready. Press start to begin!");
 });
-  
 
-
-    //toggles between code.png and the hidden card
-$(document).on('click',".card_frame",function(){    
+var turn = function(cid){ //cid means card_id and is number or a numerical string from "1" to "24" 
 	var counter = hiddenCounter(cardsHidden);
-	var id = this.id.split("card_").splice(1);
+	var id = cid;	
 	var card = cardsHidden[id-1];
-    if(counter<2 && !card.fadedOut){ 
+	if(counter<2 && !card.fadedOut){ 
        	$(card.getPlace()).attr("src", card.getSrc());
 		card.hidden = false;
 		lock = false;
+		players.forEach(function(value,index){
+			if(players[index].ai && !players[index].alreadyIn(card)){
+				players[index].learn(card);
+				//players[index].shuffle(); //to avoid that all bots have the same memory :D 
+				players[index].forget();
+			}
+		});
 	}
 	if(hiddenCounter(cardsHidden) == 2 && !lock){ // or counter  == 2
 		var array = [];
 		var again = false;
-        var turns = $('#player'+currentPlayer+'_score').html(); 
-        turns++;
-        $('#player'+currentPlayer+'_score').html(" "+turns); 
+		players[cp-1].turns++;
+        $('#player'+cp+'_turns').html(" "+players[cp-1].turns); 
 		cardsHidden.forEach(function(value,index){
 				if(!cardsHidden[index].hidden){
 					array.push(cardsHidden[index]);	
@@ -224,9 +338,8 @@ $(document).on('click',".card_frame",function(){
 		});
 		if(array[0].getSrc() ==array[1].getSrc()){
 			again = true;
-            var pairsMatched = $('#player'+currentPlayer+'_matched').html(); 
-            pairsMatched++;
-            $('#player'+currentPlayer+'_matched').html(" "+pairsMatched); 
+			players[cp-1].pairs++;
+            $('#player'+cp+'_matched').html(" "+players[cp-1].pairs); 
 			array.forEach(function(value,index){
 				$(array[index].getPlace()).fadeTo("normal",0);		
 				array[index].fadedOut = true;
@@ -250,5 +363,20 @@ $(document).on('click',".card_frame",function(){
         	nextPlayer();
 		}
 		lock = true;
+		setTimeout(function(){
+			if(players[cp-1].ai){
+				players[cp-1].turn();
+			}
+		},1000);
+		
 	}
+};
+  
+
+
+    //toggles between code.png and the hidden card
+$(document).on('click',".card_frame",function(){
+	turn(this.id.split("card_").splice(1));
 });
+
+
